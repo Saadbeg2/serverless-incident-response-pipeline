@@ -1,11 +1,23 @@
 {
   "detail-type": "CloudWatch Alarm State Change",
   "source": "aws.cloudwatch",
+  "account": "123456789012",
+  "region": "us-east-1",
+  "time": "2026-06-20T14:25:30Z",
   "detail": {
-    "alarmName": "example-high-error-rate",
+    "alarmName": "checkout-api-high-5xx",
+    "configuration": {
+      "description": "Checkout API 5xx error rate exceeded the production threshold."
+    },
     "state": {
       "value": "ALARM",
-      "reason": "Placeholder alarm event for future local testing."
+      "reason": "Threshold crossed: 5xx error rate was greater than 5% for 5 minutes.",
+      "timestamp": "2026-06-20T14:25:30Z"
+    },
+    "previousState": {
+      "value": "OK",
+      "reason": "Previously within threshold.",
+      "timestamp": "2026-06-20T14:20:30Z"
     }
   }
 }

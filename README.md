@@ -10,7 +10,7 @@ This project is a resume-focused AWS cloud engineering project that demonstrates
 
 The planned system will listen for CloudWatch alarms, create incident records, send alerts, and expose an API so engineers can view and update incident status.
 
-This first version only creates the repository structure and documentation skeleton. AWS logic will be added later.
+The current version implements local, testable Lambda handler logic with an in-memory store. AWS deployment and real DynamoDB integration will be added later.
 
 ## Planned Architecture
 
@@ -39,9 +39,12 @@ The project is designed to stay low-cost by using serverless services and avoidi
 
 ## Current Project Status
 
-Status: Initial scaffolding only.
+Status: Phase 1 complete.
 
-This repository currently contains placeholder source files, sample event files, documentation skeletons, and a validation workflow. It does not deploy AWS resources or implement incident handling logic yet.
+- Phase 0: Complete. Initial repository scaffolding and documentation skeletons are in place.
+- Phase 1: Complete. Local Lambda logic and unit tests are in place. Handlers can create, list, get, update, and escalate incidents using an in-memory store.
+
+This repository does not deploy AWS resources yet and does not require AWS credentials for local tests.
 
 ## Teardown-First Mindset
 

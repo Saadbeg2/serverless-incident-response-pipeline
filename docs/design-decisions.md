@@ -16,7 +16,15 @@ Placeholder: Explain why infrastructure should be defined with CloudFormation or
 
 ## Why Idempotency Matters
 
-Placeholder: Explain how duplicate alarms or retries could create duplicate incidents if handlers are not designed carefully.
+CloudWatch alarm events may be delivered more than once, retried, or triggered repeatedly if an alarm flaps between states. Without idempotency, the pipeline could create multiple incident records for the same alarm state change.
+
+For Phase 1, `alarm_to_incident.py` uses a deterministic incident id based on the alarm name and state-change timestamp. If the same event is handled twice, the in-memory store returns the existing incident instead of creating a duplicate.
+
+## Why Local In-Memory Tests Come First
+
+Local tests make the Lambda logic easy to understand and safe to change before any AWS resources exist.
+
+The project uses an in-memory incident store during Phase 1 so tests can run without AWS credentials, network access, or paid infrastructure. This keeps the feedback loop fast while leaving a clear path to replace the storage internals with DynamoDB in a later phase.
 
 ## Why Least-Privilege IAM Matters
 

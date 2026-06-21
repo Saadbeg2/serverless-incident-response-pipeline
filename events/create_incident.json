@@ -1,7 +1,8 @@
 {
-  "body": {
-    "title": "Example incident",
-    "severity": "medium",
-    "description": "Placeholder API event for creating an incident."
-  }
+  "httpMethod": "POST",
+  "path": "/incidents",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": "{\"title\":\"Checkout error rate elevated\",\"description\":\"CloudWatch detected elevated 5xx responses from the checkout API.\",\"severity\":\"high\",\"service\":\"checkout-api\"}"
 }

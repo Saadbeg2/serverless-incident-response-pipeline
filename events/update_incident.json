@@ -1,9 +1,11 @@
 {
+  "httpMethod": "PATCH",
+  "path": "/incidents/example-incident-id",
   "pathParameters": {
     "incidentId": "example-incident-id"
   },
-  "body": {
-    "status": "resolved",
-    "notes": "Placeholder API event for updating an incident."
-  }
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": "{\"status\":\"investigating\",\"description\":\"On-call engineer is reviewing CloudWatch logs and recent deploys.\"}"
 }
