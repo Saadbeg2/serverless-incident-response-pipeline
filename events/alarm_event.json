@@ -1,0 +1,11 @@
+{
+  "detail-type": "CloudWatch Alarm State Change",
+  "source": "aws.cloudwatch",
+  "detail": {
+    "alarmName": "example-high-error-rate",
+    "state": {
+      "value": "ALARM",
+      "reason": "Placeholder alarm event for future local testing."
+    }
+  }
+}

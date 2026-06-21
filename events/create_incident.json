@@ -1,0 +1,7 @@
+{
+  "body": {
+    "title": "Example incident",
+    "severity": "medium",
+    "description": "Placeholder API event for creating an incident."
+  }
+}

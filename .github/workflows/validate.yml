@@ -1,0 +1,31 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  basic-checks:
+    name: Basic checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check Python syntax
+        run: python -m compileall src tests
+
+      - name: Run placeholder tests
+        run: python -m unittest discover -s tests
+
+      - name: Validate JSON event files
+        run: python -m json.tool events/alarm_event.json > /dev/null && python -m json.tool events/create_incident.json > /dev/null && python -m json.tool events/update_incident.json > /dev/null
+
+      - name: Confirm no deployment step is configured
+        run: echo "Validation only. This workflow does not deploy to AWS."

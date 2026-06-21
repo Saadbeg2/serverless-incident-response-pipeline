@@ -1,0 +1,9 @@
+{
+  "pathParameters": {
+    "incidentId": "example-incident-id"
+  },
+  "body": {
+    "status": "resolved",
+    "notes": "Placeholder API event for updating an incident."
+  }
+}

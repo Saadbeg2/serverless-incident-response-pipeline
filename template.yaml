@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Placeholder SAM template for the Serverless Incident Response Pipeline.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 10
+    MemorySize: 128
+
+Resources: {}
+
+Outputs:
+  ProjectStatus:
+    Description: Current infrastructure status.
+    Value: "Placeholder template only. No AWS resources are created yet."
