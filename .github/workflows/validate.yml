@@ -27,5 +27,13 @@ jobs:
       - name: Validate JSON event files
         run: python -m json.tool events/alarm_event.json > /dev/null && python -m json.tool events/create_incident.json > /dev/null && python -m json.tool events/update_incident.json > /dev/null
 
+      - name: Validate SAM template if SAM CLI is available
+        run: |
+          if command -v sam > /dev/null; then
+            sam validate --lint --template-file template.yaml
+          else
+            echo "SAM CLI is not installed on this runner; skipping template lint."
+          fi
+
       - name: Confirm no deployment step is configured
         run: echo "Validation only. This workflow does not deploy to AWS."

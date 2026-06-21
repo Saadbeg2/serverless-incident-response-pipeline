@@ -1,16 +1,175 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: Placeholder SAM template for the Serverless Incident Response Pipeline.
+Description: Serverless Incident Response Pipeline Phase 2 backend infrastructure.
 
 Globals:
   Function:
     Runtime: python3.12
     Timeout: 10
     MemorySize: 128
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        INCIDENTS_TABLE_NAME: !Ref IncidentsTable
 
-Resources: {}
+Resources:
+  IncidentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: ServerlessIncidentResponsePipeline
+
+  CreateIncidentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src.create_incident.handler
+      CodeUri: .
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt IncidentsTable.Arn
+
+  GetIncidentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src.get_incident.handler
+      CodeUri: .
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt IncidentsTable.Arn
+
+  ListIncidentsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src.list_incidents.handler
+      CodeUri: .
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+              Resource: !GetAtt IncidentsTable.Arn
+
+  UpdateIncidentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src.update_incident.handler
+      CodeUri: .
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt IncidentsTable.Arn
+
+  AlarmToIncidentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src.alarm_to_incident.handler
+      CodeUri: .
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt IncidentsTable.Arn
+
+  EscalateIncidentsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src.escalate_incidents.handler
+      CodeUri: .
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+                - dynamodb:UpdateItem
+              Resource: !GetAtt IncidentsTable.Arn
+
+  CreateIncidentLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${CreateIncidentFunction}
+      RetentionInDays: 7
+
+  GetIncidentLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${GetIncidentFunction}
+      RetentionInDays: 7
+
+  ListIncidentsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ListIncidentsFunction}
+      RetentionInDays: 7
+
+  UpdateIncidentLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${UpdateIncidentFunction}
+      RetentionInDays: 7
+
+  AlarmToIncidentLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AlarmToIncidentFunction}
+      RetentionInDays: 7
+
+  EscalateIncidentsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${EscalateIncidentsFunction}
+      RetentionInDays: 7
 
 Outputs:
-  ProjectStatus:
-    Description: Current infrastructure status.
-    Value: "Placeholder template only. No AWS resources are created yet."
+  IncidentsTableName:
+    Description: DynamoDB table used for incident records.
+    Value: !Ref IncidentsTable
+
+  CreateIncidentFunctionName:
+    Description: Lambda function for creating incidents.
+    Value: !Ref CreateIncidentFunction
+
+  GetIncidentFunctionName:
+    Description: Lambda function for getting one incident.
+    Value: !Ref GetIncidentFunction
+
+  ListIncidentsFunctionName:
+    Description: Lambda function for listing incidents.
+    Value: !Ref ListIncidentsFunction
+
+  UpdateIncidentFunctionName:
+    Description: Lambda function for updating incidents.
+    Value: !Ref UpdateIncidentFunction
+
+  AlarmToIncidentFunctionName:
+    Description: Lambda function for converting alarm events into incidents.
+    Value: !Ref AlarmToIncidentFunction
+
+  EscalateIncidentsFunctionName:
+    Description: Lambda function for escalating stale open incidents.
+    Value: !Ref EscalateIncidentsFunction

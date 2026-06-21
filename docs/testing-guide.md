@@ -28,12 +28,28 @@ python -m json.tool events/update_incident.json
 
 ## Local In-Memory Store
 
-Phase 1 uses `src/incident_store.py` as a small storage abstraction backed by an in-memory dictionary.
+Phase 1 and Phase 2 local tests use `src/incident_store.py` as a small storage abstraction backed by an in-memory dictionary.
+
+Local tests still use the in-memory dictionary because `INCIDENTS_TABLE_NAME` is not set during normal local test runs.
 
 This lets the Lambda handlers be tested locally without AWS credentials, DynamoDB tables, or deployment steps. The store supports creating, reading, listing, updating, and finding stale open incidents.
 
 The in-memory store resets when the Python process exits. Unit tests also clear it between test cases so each test starts from a known state.
 
-## Future DynamoDB Integration
+## DynamoDB Runtime Behavior
 
-DynamoDB integration will come in a later phase. The current store module includes TODO comments showing where DynamoDB `PutItem`, `GetItem`, `UpdateItem`, and query or scan logic will be added.
+When deployed by the Phase 2 SAM template, each Lambda receives the `INCIDENTS_TABLE_NAME` environment variable. When that variable is present, `src/incident_store.py` uses boto3 to read and write incidents in DynamoDB.
+
+Do not set `INCIDENTS_TABLE_NAME` for regular unit tests unless you intentionally want to test against AWS.
+
+## Current Validation Checklist
+
+Run these commands before committing changes:
+
+```bash
+python -m unittest discover -s tests
+python -m compileall src tests
+python -m json.tool events/alarm_event.json
+python -m json.tool events/create_incident.json
+python -m json.tool events/update_incident.json
+```
