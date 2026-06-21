@@ -1,7 +1,11 @@
 """Lambda handler for reading a single incident through the API."""
 
-from src.incident_store import get_incident
-from src.response import error_response, success_response
+try:
+    from .incident_store import get_incident
+    from .response import error_response, success_response
+except ImportError:
+    from incident_store import get_incident
+    from response import error_response, success_response
 
 def handler(event, context):
     """Get an incident by id from API Gateway path parameters."""

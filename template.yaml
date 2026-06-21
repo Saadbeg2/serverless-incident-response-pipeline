@@ -31,8 +31,8 @@ Resources:
   CreateIncidentFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src.create_incident.handler
-      CodeUri: .
+      Handler: create_incident.handler
+      CodeUri: src/
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -45,8 +45,8 @@ Resources:
   GetIncidentFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src.get_incident.handler
-      CodeUri: .
+      Handler: get_incident.handler
+      CodeUri: src/
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -58,8 +58,8 @@ Resources:
   ListIncidentsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src.list_incidents.handler
-      CodeUri: .
+      Handler: list_incidents.handler
+      CodeUri: src/
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -71,8 +71,8 @@ Resources:
   UpdateIncidentFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src.update_incident.handler
-      CodeUri: .
+      Handler: update_incident.handler
+      CodeUri: src/
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -84,8 +84,8 @@ Resources:
   AlarmToIncidentFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src.alarm_to_incident.handler
-      CodeUri: .
+      Handler: alarm_to_incident.handler
+      CodeUri: src/
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -98,8 +98,8 @@ Resources:
   EscalateIncidentsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src.escalate_incidents.handler
-      CodeUri: .
+      Handler: escalate_incidents.handler
+      CodeUri: src/
       Policies:
         - Version: "2012-10-17"
           Statement:

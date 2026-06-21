@@ -2,9 +2,14 @@
 
 import json
 
-from src.incident_store import update_incident
-from src.models import normalize_choice, utc_now, validate_incident_input
-from src.response import error_response, success_response
+try:
+    from .incident_store import update_incident
+    from .models import normalize_choice, utc_now, validate_incident_input
+    from .response import error_response, success_response
+except ImportError:
+    from incident_store import update_incident
+    from models import normalize_choice, utc_now, validate_incident_input
+    from response import error_response, success_response
 
 ALLOWED_UPDATE_FIELDS = {"status", "severity", "description", "service"}
 

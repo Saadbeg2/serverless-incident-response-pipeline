@@ -2,9 +2,14 @@
 
 import hashlib
 
-from src.incident_store import create_incident
-from src.models import utc_now
-from src.response import success_response
+try:
+    from .incident_store import create_incident
+    from .models import utc_now
+    from .response import success_response
+except ImportError:
+    from incident_store import create_incident
+    from models import utc_now
+    from response import success_response
 
 
 def _deterministic_alarm_incident_id(alarm_name, state_change_timestamp):

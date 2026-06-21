@@ -1,8 +1,13 @@
 """Lambda handler for listing incidents through the API."""
 
-from src.incident_store import list_incidents
-from src.models import ALLOWED_SEVERITIES, ALLOWED_STATUSES, normalize_choice
-from src.response import error_response, success_response
+try:
+    from .incident_store import list_incidents
+    from .models import ALLOWED_SEVERITIES, ALLOWED_STATUSES, normalize_choice
+    from .response import error_response, success_response
+except ImportError:
+    from incident_store import list_incidents
+    from models import ALLOWED_SEVERITIES, ALLOWED_STATUSES, normalize_choice
+    from response import error_response, success_response
 
 def handler(event, context):
     """List incidents with optional status and severity filters."""

@@ -1,8 +1,13 @@
 """Lambda handler for scheduled incident escalation checks."""
 
-from src.incident_store import find_stale_open_incidents, update_incident
-from src.models import utc_now
-from src.response import error_response, success_response
+try:
+    from .incident_store import find_stale_open_incidents, update_incident
+    from .models import utc_now
+    from .response import error_response, success_response
+except ImportError:
+    from incident_store import find_stale_open_incidents, update_incident
+    from models import utc_now
+    from response import error_response, success_response
 
 def handler(event, context):
     """Escalate OPEN incidents older than a local-test cutoff timestamp."""
