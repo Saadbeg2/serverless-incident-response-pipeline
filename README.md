@@ -46,8 +46,9 @@ Status: Manual AWS validation complete after Phase 2.
 - Phase 2: Complete. SAM infrastructure now defines DynamoDB, deployable Lambda functions, least-privilege table permissions, and short-retention CloudWatch log groups.
 - Manual AWS validation: Complete. Lambda functions were manually packaged, uploaded through S3, connected to DynamoDB, and tested with Lambda test events.
 - Manual SNS validation: Complete. An SNS topic and confirmed email subscription were tested with a manual publish.
+- SNS-enabled alarm-to-incident validation: Complete. The updated `lambda-package.zip` was uploaded to S3, `sirp-alarm-to-incident-dev` was updated from the latest package, and a CloudWatch-style Lambda test event created a HIGH incident in DynamoDB and delivered an SNS email alert.
 
-Manual validation confirmed that incidents can be created, retrieved, listed, updated, created from CloudWatch-style alarm events, and escalated when stale. SNS manual publish was also validated. Real API Gateway, EventBridge, and CloudWatch alarm automation are not deployed yet.
+Manual validation confirmed that incidents can be created, retrieved, listed, updated, created from CloudWatch-style alarm events, escalated when stale, and sent as SNS email alerts for high-severity alarm-style incidents. SNS manual publish was also validated. Real API Gateway, EventBridge, and CloudWatch alarm automation are not deployed yet.
 
 CloudWatch-style alarm events are still manually tested through Lambda test events; real CloudWatch alarms are not connected yet.
 

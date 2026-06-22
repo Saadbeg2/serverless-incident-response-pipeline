@@ -85,6 +85,13 @@ Fix:
 - Set `INCIDENT_ALERT_TOPIC_ARN` on `sirp-alarm-to-incident-dev`.
 - Keep `INCIDENTS_TABLE_NAME` set at the same time.
 
+Validation note:
+
+- The SNS-enabled alarm-to-incident path was manually validated after the updated package was uploaded to S3 and `sirp-alarm-to-incident-dev` was updated from that package.
+- The successful test used a CloudWatch-style Lambda test event with `alarmName` `checkout-api-high-5xx-sns-test` and timestamp `2026-06-22T18:30:00Z`.
+- The Lambda returned `statusCode` `201`, DynamoDB stored incident `alarm-06aef43378caa053`, and an SNS email was received.
+- This does not mean a real CloudWatch alarm trigger is connected yet.
+
 ## Unconfirmed Email Subscription
 
 SNS will not deliver email alerts until the subscription is confirmed.

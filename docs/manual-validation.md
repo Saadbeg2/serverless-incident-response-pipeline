@@ -70,6 +70,33 @@ Validation steps:
 
 This proved that SNS notification delivery worked before connecting the `alarm_to_incident` Lambda to publish alerts. Real CloudWatch alarms are still not connected; CloudWatch-style alarm events are manually tested through Lambda test events.
 
+## SNS-Enabled Alarm-to-Incident Validation
+
+After SNS alert publishing was added to the `alarm_to_incident` Lambda code, the latest package was manually validated in AWS.
+
+Validation steps:
+
+- Uploaded the updated `lambda-package.zip` to `s3://sirp-lambda-artifacts-dev-saad-20260621/lambda-package.zip`.
+- Updated `sirp-alarm-to-incident-dev` from the latest S3 package.
+- Ran a new CloudWatch-style Lambda test event.
+
+Test event details:
+
+- `alarmName`: `checkout-api-high-5xx-sns-test`
+- `timestamp`: `2026-06-22T18:30:00Z`
+
+Results:
+
+- Lambda returned `statusCode` `201`.
+- DynamoDB stored a new incident:
+  - `id`: `alarm-06aef43378caa053`
+  - `severity`: `HIGH`
+  - `status`: `OPEN`
+  - `source`: `cloudwatch`
+- SNS email alert was successfully received.
+
+This was still a manual Lambda test event using a CloudWatch-style payload. A real CloudWatch alarm trigger is not connected yet.
+
 ## Test Results Summary
 
 | Test | Result |
@@ -81,6 +108,7 @@ This proved that SNS notification delivery worked before connecting the `alarm_t
 | `alarm_to_incident` | Created an incident from a CloudWatch-style alarm event with id `alarm-89e60cafabdceb89`; stored `alarmName` was `checkout-api-high-5xx`. |
 | `alarm_to_incident` idempotency | Ran the same exact alarm event twice and confirmed the same incident id was returned. |
 | SNS manual publish | Published a manual SNS test alert and confirmed email delivery. |
+| SNS-enabled `alarm_to_incident` | Updated `sirp-alarm-to-incident-dev` from the latest S3 package, ran `checkout-api-high-5xx-sns-test`, created incident `alarm-06aef43378caa053`, and received the SNS email alert. |
 | `escalate_incidents` | Tested with `cutoffTimestamp` set to `2027-01-01T00:00:00Z`; response `statusCode` was `200`; escalated 3 stale `OPEN` alarm incidents. |
 
 ## Troubleshooting Notes
@@ -111,4 +139,5 @@ Manual validation proved that:
 - Incidents can be created, retrieved, listed, updated, generated from alarm-style events, and escalated.
 - Deterministic alarm incident ids prevent duplicate records for the same alarm event.
 - SNS can deliver email notifications from a manually published alert.
+- The alarm-to-incident Lambda can publish an SNS email alert for a manually tested HIGH CloudWatch-style incident.
 - The backend can work without API Gateway, EventBridge, or real CloudWatch alarm automation.

@@ -20,6 +20,8 @@ I first built and validated the architecture manually in AWS to understand how L
 
 The project originally stored incidents in DynamoDB. I then added SNS alerting so high-severity CloudWatch-style incidents could notify operators by email. I manually validated SNS first, then connected the alarm-to-incident Lambda to publish alerts through a least-privilege IAM permission.
 
+The SNS-enabled path was then validated with a manual CloudWatch-style Lambda test event. The Lambda created a HIGH incident in DynamoDB and an SNS email alert was received, while real CloudWatch alarm triggers remained a future integration step.
+
 ## Likely Interview Questions
 
 - Why did you choose a serverless architecture?

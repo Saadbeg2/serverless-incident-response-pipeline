@@ -166,6 +166,21 @@ For manual AWS validation:
 
 LOW and MEDIUM incidents should not publish SNS alerts.
 
+### Latest SNS-Enabled Validation Result
+
+The latest manual validation confirmed the SNS-enabled `alarm_to_incident` path in AWS:
+
+- Updated `lambda-package.zip` was uploaded to S3.
+- `sirp-alarm-to-incident-dev` was updated from the latest S3 package.
+- A CloudWatch-style Lambda test event was run with:
+  - `alarmName`: `checkout-api-high-5xx-sns-test`
+  - `timestamp`: `2026-06-22T18:30:00Z`
+- Lambda returned `statusCode` `201`.
+- DynamoDB stored incident `alarm-06aef43378caa053` with `severity` `HIGH`, `status` `OPEN`, and `source` `cloudwatch`.
+- SNS email alert was received.
+
+This was not a real CloudWatch alarm trigger. It was still manually tested through a Lambda test event.
+
 ### Testing SNS Without AWS
 
 Unit tests mock the SNS client and set `INCIDENT_ALERT_TOPIC_ARN` only inside the test case. This verifies that the code attempts to publish for HIGH/CRITICAL incidents without using AWS credentials.
