@@ -26,6 +26,7 @@ Resources:
   IncidentsTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      TableName: sirp-incidents-sam-dev
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: id
@@ -40,6 +41,7 @@ Resources:
   CreateIncidentFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: sirp-create-incident-sam-dev
       Handler: create_incident.handler
       CodeUri: src/
       Policies:
@@ -54,6 +56,7 @@ Resources:
   GetIncidentFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: sirp-get-incident-sam-dev
       Handler: get_incident.handler
       CodeUri: src/
       Policies:
@@ -67,6 +70,7 @@ Resources:
   ListIncidentsFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: sirp-list-incidents-sam-dev
       Handler: list_incidents.handler
       CodeUri: src/
       Policies:
@@ -80,6 +84,7 @@ Resources:
   UpdateIncidentFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: sirp-update-incident-sam-dev
       Handler: update_incident.handler
       CodeUri: src/
       Policies:
@@ -93,6 +98,7 @@ Resources:
   AlarmToIncidentFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: sirp-alarm-to-incident-sam-dev
       Handler: alarm_to_incident.handler
       CodeUri: src/
       Environment:
@@ -120,6 +126,7 @@ Resources:
   EscalateIncidentsFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: sirp-escalate-incidents-sam-dev
       Handler: escalate_incidents.handler
       CodeUri: src/
       Policies:
@@ -134,37 +141,37 @@ Resources:
   CreateIncidentLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${CreateIncidentFunction}
+      LogGroupName: /aws/lambda/sirp-create-incident-sam-dev
       RetentionInDays: 7
 
   GetIncidentLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${GetIncidentFunction}
+      LogGroupName: /aws/lambda/sirp-get-incident-sam-dev
       RetentionInDays: 7
 
   ListIncidentsLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${ListIncidentsFunction}
+      LogGroupName: /aws/lambda/sirp-list-incidents-sam-dev
       RetentionInDays: 7
 
   UpdateIncidentLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${UpdateIncidentFunction}
+      LogGroupName: /aws/lambda/sirp-update-incident-sam-dev
       RetentionInDays: 7
 
   AlarmToIncidentLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${AlarmToIncidentFunction}
+      LogGroupName: /aws/lambda/sirp-alarm-to-incident-sam-dev
       RetentionInDays: 7
 
   EscalateIncidentsLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${EscalateIncidentsFunction}
+      LogGroupName: /aws/lambda/sirp-escalate-incidents-sam-dev
       RetentionInDays: 7
 
 Outputs:
