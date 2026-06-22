@@ -97,6 +97,7 @@ Resources:
       CodeUri: src/
       Environment:
         Variables:
+          INCIDENTS_TABLE_NAME: !Ref IncidentsTable
           INCIDENT_ALERT_TOPIC_ARN: !Ref IncidentAlertTopicArn
       Policies:
         - Version: "2012-10-17"
