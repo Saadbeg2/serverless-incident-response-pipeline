@@ -2,11 +2,20 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: Serverless Incident Response Pipeline Phase 2 backend infrastructure.
 
+Parameters:
+  IncidentAlertTopicArn:
+    Type: String
+    Default: ""
+    Description: Optional SNS topic ARN for HIGH/CRITICAL alarm incident alerts.
+
+Conditions:
+  HasIncidentAlertTopicArn: !Not [!Equals [!Ref IncidentAlertTopicArn, ""]]
+
 Globals:
   Function:
     Runtime: python3.12
     Timeout: 10
-    MemorySize: 128
+    MemorySize: 256
     Architectures:
       - arm64
     Environment:
@@ -86,6 +95,9 @@ Resources:
     Properties:
       Handler: alarm_to_incident.handler
       CodeUri: src/
+      Environment:
+        Variables:
+          INCIDENT_ALERT_TOPIC_ARN: !Ref IncidentAlertTopicArn
       Policies:
         - Version: "2012-10-17"
           Statement:
@@ -94,6 +106,15 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:GetItem
               Resource: !GetAtt IncidentsTable.Arn
+        - !If
+          - HasIncidentAlertTopicArn
+          - Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref IncidentAlertTopicArn
+          - !Ref AWS::NoValue
 
   EscalateIncidentsFunction:
     Type: AWS::Serverless::Function

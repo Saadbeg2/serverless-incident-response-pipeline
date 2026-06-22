@@ -23,6 +23,126 @@ Phase 2 deploys:
 
 This phase does not deploy API Gateway, SNS, EventBridge, or CloudWatch alarm automation.
 
+## Manual AWS Deployment Path
+
+The backend was manually validated before being codified for repeatable CloudFormation/SAM deployment. This path is useful for learning how the AWS service boundaries fit together, but CloudFormation/SAM remains the intended long-term deployment method.
+
+High-level manual steps:
+
+1. Package Lambda code.
+
+   Create a zip file containing the Python handler files from `src/` so handlers such as `create_incident.handler` are at the package root.
+
+2. Upload zip to S3.
+
+   Upload the artifact as `lambda-package.zip` to the deployment artifact bucket.
+
+3. Create the DynamoDB table.
+
+   Create a table named `sirp-incidents-dev` with partition key `id`.
+
+4. Create the Lambda execution role.
+
+   Create `sirp-lambda-role-dev` and allow Lambda to assume it.
+
+5. Attach an inline policy.
+
+   Attach `sirp-lambda-dynamodb-logs-policy` with DynamoDB access to the incidents table and permissions to write CloudWatch logs.
+
+6. Create Lambda functions.
+
+   Create:
+
+   - `sirp-create-incident-dev`
+   - `sirp-get-incident-dev`
+   - `sirp-list-incidents-dev`
+   - `sirp-update-incident-dev`
+   - `sirp-alarm-to-incident-dev`
+   - `sirp-escalate-incidents-dev`
+
+7. Upload code from S3.
+
+   Use `s3://sirp-lambda-artifacts-dev-saad-20260621/lambda-package.zip` as the code source.
+
+8. Set handler and environment variables.
+
+   Configure each function with Python 3.12, 256 MB memory, 10 second timeout, and `INCIDENTS_TABLE_NAME=sirp-incidents-dev`.
+
+   | Function | Handler |
+   |---|---|
+   | `sirp-create-incident-dev` | `create_incident.handler` |
+   | `sirp-get-incident-dev` | `get_incident.handler` |
+   | `sirp-list-incidents-dev` | `list_incidents.handler` |
+   | `sirp-update-incident-dev` | `update_incident.handler` |
+   | `sirp-alarm-to-incident-dev` | `alarm_to_incident.handler` |
+   | `sirp-escalate-incidents-dev` | `escalate_incidents.handler` |
+
+9. Test functions.
+
+   Use Lambda test events for create, get, list, update, alarm-to-incident, and escalation flows.
+
+10. Verify DynamoDB records.
+
+   Confirm incidents are created and updated in the `sirp-incidents-dev` table.
+
+See [manual-validation.md](manual-validation.md) for the validation record and lessons learned.
+
+## Manual SNS Alert Update Path
+
+After adding SNS alert publishing to `alarm_to_incident`, update only the alarm-to-incident Lambda during manual validation.
+
+Recreate the Lambda zip:
+
+```bash
+cd src
+zip -r ../lambda-package.zip .
+cd ..
+```
+
+Upload the new zip to the existing artifact location:
+
+```bash
+aws s3 cp lambda-package.zip \
+  s3://sirp-lambda-artifacts-dev-saad-20260621/lambda-package.zip
+```
+
+Update the existing Lambda function code from S3:
+
+```bash
+aws lambda update-function-code \
+  --function-name sirp-alarm-to-incident-dev \
+  --s3-bucket sirp-lambda-artifacts-dev-saad-20260621 \
+  --s3-key lambda-package.zip
+```
+
+Add the SNS topic ARN to the alarm-to-incident Lambda environment, alongside the existing DynamoDB table variable:
+
+```bash
+aws lambda update-function-configuration \
+  --function-name sirp-alarm-to-incident-dev \
+  --environment "Variables={INCIDENTS_TABLE_NAME=sirp-incidents-dev,INCIDENT_ALERT_TOPIC_ARN=arn:aws:sns:us-east-1:107570341596:sirp-incident-alerts-dev}"
+```
+
+Update the Lambda execution role inline policy so only the alarm-to-incident function role can publish to the alert topic:
+
+```json
+{
+  "Sid": "PublishIncidentAlerts",
+  "Effect": "Allow",
+  "Action": [
+    "sns:Publish"
+  ],
+  "Resource": "arn:aws:sns:us-east-1:107570341596:sirp-incident-alerts-dev"
+}
+```
+
+Then test `sirp-alarm-to-incident-dev` with a CloudWatch-style Lambda test event and confirm:
+
+- The incident is created or returned from DynamoDB.
+- HIGH or CRITICAL incidents publish an SNS alert.
+- The confirmed subscription receives the email.
+- Running the same exact event again returns the same incident id and should not send a duplicate alert.
+
 ## Validate the Template
 
 From the repository root, run:

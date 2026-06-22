@@ -1,7 +1,10 @@
 import json
+import os
 import unittest
+from unittest.mock import patch
 
 from src import alarm_to_incident
+from src import alerts
 from src import create_incident
 from src import escalate_incidents
 from src import get_incident
@@ -16,6 +19,7 @@ def response_body(response):
 class Phase1HandlerTests(unittest.TestCase):
     def setUp(self):
         incident_store._clear_store()
+        os.environ.pop("INCIDENT_ALERT_TOPIC_ARN", None)
 
     def test_create_valid_incident(self):
         event = {
@@ -154,6 +158,75 @@ class Phase1HandlerTests(unittest.TestCase):
 
         incidents = incident_store.list_incidents()
         self.assertEqual(len(incidents), 1)
+
+    def test_high_alarm_incident_publishes_when_topic_is_configured(self):
+        event = {
+            "detail": {
+                "alarmName": "checkout-api-high-5xx",
+                "state": {
+                    "value": "ALARM",
+                    "reason": "Error threshold crossed.",
+                    "timestamp": "2026-06-20T15:30:00Z",
+                },
+            }
+        }
+        fake_sns = unittest.mock.Mock()
+
+        with patch.dict(
+            os.environ,
+            {"INCIDENT_ALERT_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test"},
+        ):
+            with patch.object(alerts, "_sns_client", return_value=fake_sns):
+                response = alarm_to_incident.handler(event, None)
+
+        self.assertEqual(response["statusCode"], 201)
+        fake_sns.publish.assert_called_once()
+        publish_args = fake_sns.publish.call_args.kwargs
+        self.assertIn("SIRP HIGH Incident", publish_args["Subject"])
+        self.assertIn("Incident ID:", publish_args["Message"])
+
+    def test_low_alarm_incident_does_not_publish(self):
+        event = {
+            "detail": {
+                "alarmName": "checkout-api-low-warning",
+                "severity": "low",
+                "state": {
+                    "value": "ALARM",
+                    "reason": "Low severity test.",
+                    "timestamp": "2026-06-20T16:00:00Z",
+                },
+            }
+        }
+        fake_sns = unittest.mock.Mock()
+
+        with patch.dict(
+            os.environ,
+            {"INCIDENT_ALERT_TOPIC_ARN": "arn:aws:sns:us-east-1:123456789012:test"},
+        ):
+            with patch.object(alerts, "_sns_client", return_value=fake_sns):
+                response = alarm_to_incident.handler(event, None)
+
+        self.assertEqual(response["statusCode"], 201)
+        fake_sns.publish.assert_not_called()
+
+    def test_missing_alert_topic_does_not_fail_alarm_execution(self):
+        event = {
+            "detail": {
+                "alarmName": "checkout-api-critical",
+                "severity": "critical",
+                "state": {
+                    "value": "ALARM",
+                    "reason": "Critical alarm test.",
+                    "timestamp": "2026-06-20T16:30:00Z",
+                },
+            }
+        }
+
+        response = alarm_to_incident.handler(event, None)
+        body = response_body(response)
+
+        self.assertEqual(response["statusCode"], 201)
+        self.assertEqual(body["severity"], "CRITICAL")
 
     def test_escalation_changes_stale_open_incidents_to_escalated(self):
         incident_store.create_incident(

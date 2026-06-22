@@ -12,6 +12,14 @@ The planned flow starts with CloudWatch alarms. When an alarm fires, it publishe
 
 The project is intentionally cost-conscious. It avoids always-on services like EC2, RDS, ECS, ALB, NAT Gateway, and Transit Gateway. Everything should be deployed and torn down through infrastructure as code.
 
+## Manual Validation Explanation
+
+I first built and validated the architecture manually in AWS to understand how Lambda, S3, IAM, DynamoDB, and CloudWatch Logs interacted. After validating the workflow manually, the next step is to codify the same setup in CloudFormation so it can be recreated consistently.
+
+## SNS Alerting Explanation
+
+The project originally stored incidents in DynamoDB. I then added SNS alerting so high-severity CloudWatch-style incidents could notify operators by email. I manually validated SNS first, then connected the alarm-to-incident Lambda to publish alerts through a least-privilege IAM permission.
+
 ## Likely Interview Questions
 
 - Why did you choose a serverless architecture?
