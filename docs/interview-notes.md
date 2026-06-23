@@ -26,6 +26,14 @@ The SNS-enabled path was then validated with a manual CloudWatch-style Lambda te
 
 After deploying with SAM, I validated the SAM-managed alarm-to-incident Lambda the same way: a CloudWatch-style test event created incident `alarm-90eb8d0c5dedab14` and delivered an SNS email alert. This also taught an IAM lesson: local `sam validate` proves template syntax, but real deployment still depends on the deploy user having permissions for the named and generated AWS resources.
 
+## Real Alarm Trigger Explanation
+
+To avoid relying only on manual Lambda test events, I added a failure simulator Lambda that intentionally raises an exception. CloudWatch alarms on that Lambda's `Errors` metric, EventBridge captures the alarm state change, and the existing alarm-to-incident Lambda creates the incident and sends the SNS alert.
+
+This keeps the failure simulation fully serverless and low-cost while demonstrating the real event-driven path from failure signal to incident record and notification.
+
+I validated the full automated path end to end: invoking the failure simulator produced a Lambda error, the CloudWatch alarm entered `ALARM`, EventBridge invoked the alarm-to-incident Lambda, DynamoDB stored incident `alarm-8a107dc637b96a30`, and an SNS email alert was received.
+
 ## Likely Interview Questions
 
 - Why did you choose a serverless architecture?

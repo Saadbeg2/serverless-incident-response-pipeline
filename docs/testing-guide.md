@@ -208,6 +208,52 @@ Results:
 
 This was still not a real CloudWatch alarm trigger. The event was manually supplied through Lambda testing.
 
+### Real CloudWatch Alarm Trigger Test
+
+After deploying the SAM stack, validate the real alarm path:
+
+1. Invoke `sirp-failure-simulator-sam-dev`.
+2. Confirm the invocation fails intentionally.
+3. Wait for CloudWatch alarm `sirp-failure-simulator-errors-sam-dev` to evaluate the Lambda `Errors` metric.
+4. Confirm the alarm enters `ALARM`.
+5. Confirm EventBridge rule `sirp-failure-simulator-alarm-rule-sam-dev` invokes `sirp-alarm-to-incident-sam-dev`.
+6. Confirm DynamoDB table `sirp-incidents-sam-dev` contains a new incident.
+7. Confirm an SNS email alert is received.
+
+The failure simulator Lambda should not be used for production traffic. It exists only to create a controlled CloudWatch `Errors` metric for validation.
+
+### Real CloudWatch Alarm Validation Result
+
+The fully automated flow was successfully validated:
+
+```text
+sirp-failure-simulator-sam-dev intentionally failed
+  -> CloudWatch Lambda Errors metric was recorded
+  -> CloudWatch alarm sirp-failure-simulator-errors-sam-dev entered ALARM
+  -> EventBridge rule sirp-failure-simulator-alarm-rule-sam-dev matched the alarm state change
+  -> sirp-alarm-to-incident-sam-dev was invoked automatically
+  -> DynamoDB table sirp-incidents-sam-dev stored a new incident
+  -> SNS email alert was received
+```
+
+Failure simulator invoke returned:
+
+- `StatusCode`: `200`
+- `FunctionError`: `Unhandled`
+- `RuntimeError: Intentional failure generated for SIRP CloudWatch alarm test.`
+
+DynamoDB confirmed:
+
+- `id`: `alarm-8a107dc637b96a30`
+- `alarmName`: `sirp-failure-simulator-errors-sam-dev`
+- `severity`: `HIGH`
+- `status`: `OPEN`
+- `source`: `cloudwatch`
+- `alarmState`: `ALARM`
+- `createdAt`: `2026-06-23T16:47:27Z`
+
+The SNS email alert arrived after a slight delay, which is expected because CloudWatch alarm evaluation and EventBridge delivery are asynchronous.
+
 ### Testing SNS Without AWS
 
 Unit tests mock the SNS client and set `INCIDENT_ALERT_TOPIC_ARN` only inside the test case. This verifies that the code attempts to publish for HIGH/CRITICAL incidents without using AWS credentials.

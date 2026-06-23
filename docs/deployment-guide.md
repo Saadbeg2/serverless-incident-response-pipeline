@@ -17,11 +17,13 @@ Deployment is optional. Local tests do not require AWS credentials.
 Phase 2 deploys:
 
 - One DynamoDB table for incident records.
-- Six Lambda functions.
+- Seven Lambda functions, including a failure simulator for alarm validation.
+- One CloudWatch alarm on the failure simulator Lambda `Errors` metric.
+- One EventBridge rule that sends the alarm state change event to `alarm_to_incident`.
 - Least-privilege IAM permissions for those functions.
 - CloudWatch log groups with 7-day retention.
 
-This phase does not deploy API Gateway, SNS, EventBridge, or CloudWatch alarm automation.
+This phase does not deploy API Gateway or create the SNS topic. It can use an existing SNS topic ARN for alerts.
 
 ## Manual AWS Deployment Path
 
@@ -208,6 +210,80 @@ Results:
 - SNS email alert received successfully.
 
 This was still manually tested with a CloudWatch-style Lambda test event. A real CloudWatch alarm trigger is not connected yet.
+
+## Failure Simulator Alarm Validation
+
+The deployable stack now includes a real low-cost alarm trigger path:
+
+```text
+sirp-failure-simulator-sam-dev
+  -> Lambda Errors metric
+  -> sirp-failure-simulator-errors-sam-dev CloudWatch alarm
+  -> sirp-failure-simulator-alarm-rule-sam-dev EventBridge rule
+  -> sirp-alarm-to-incident-sam-dev
+  -> DynamoDB incident
+  -> SNS email alert
+```
+
+To validate after deployment:
+
+1. Invoke `sirp-failure-simulator-sam-dev`.
+2. Confirm it fails intentionally.
+3. Wait for CloudWatch to evaluate the Lambda `Errors` metric.
+4. Confirm alarm `sirp-failure-simulator-errors-sam-dev` enters `ALARM`.
+5. Confirm EventBridge invokes `sirp-alarm-to-incident-sam-dev`.
+6. Confirm DynamoDB table `sirp-incidents-sam-dev` stores a new incident.
+7. Confirm the SNS email alert is received.
+
+The failure simulator exists only to generate CloudWatch `Errors` metrics for this validation path.
+
+This fully automated flow was successfully validated:
+
+```text
+sirp-failure-simulator-sam-dev intentionally failed
+  -> CloudWatch Lambda Errors metric was recorded
+  -> sirp-failure-simulator-errors-sam-dev entered ALARM
+  -> sirp-failure-simulator-alarm-rule-sam-dev matched the alarm state change
+  -> sirp-alarm-to-incident-sam-dev was invoked automatically
+  -> sirp-incidents-sam-dev stored a new incident
+  -> SNS email alert was received
+```
+
+Failure simulator invoke result:
+
+- `StatusCode`: `200`
+- `FunctionError`: `Unhandled`
+- Error: `RuntimeError: Intentional failure generated for SIRP CloudWatch alarm test.`
+
+DynamoDB confirmed incident:
+
+- `id`: `alarm-8a107dc637b96a30`
+- `alarmName`: `sirp-failure-simulator-errors-sam-dev`
+- `severity`: `HIGH`
+- `status`: `OPEN`
+- `source`: `cloudwatch`
+- `alarmState`: `ALARM`
+- `createdAt`: `2026-06-23T16:47:27Z`
+
+The SNS email alert was received, with a slight delay after the simulator failure while CloudWatch evaluated the metric and EventBridge delivered the alarm state change.
+
+## Deploy IAM Permissions For Alarm Trigger Path
+
+The deploy user needs permissions for the new CloudWatch alarm, EventBridge rule, Lambda invoke permission, and failure simulator Lambda resources.
+
+Recommended resource patterns:
+
+- CloudWatch alarm: `arn:aws:cloudwatch:us-east-1:<account-id>:alarm:sirp-*`
+- EventBridge rule: `arn:aws:events:us-east-1:<account-id>:rule/sirp-*`
+- Lambda functions: `arn:aws:lambda:us-east-1:<account-id>:function:sirp-*`
+- CloudWatch log groups: `arn:aws:logs:us-east-1:<account-id>:log-group:/aws/lambda/sirp-*`
+
+Useful actions:
+
+- CloudWatch alarms: `cloudwatch:PutMetricAlarm`, `cloudwatch:DeleteAlarms`, `cloudwatch:DescribeAlarms`, `cloudwatch:TagResource`, `cloudwatch:UntagResource`
+- EventBridge: `events:PutRule`, `events:DeleteRule`, `events:DescribeRule`, `events:PutTargets`, `events:RemoveTargets`, `events:ListTargetsByRule`, `events:TagResource`, `events:UntagResource`
+- Lambda permissions: `lambda:AddPermission`, `lambda:RemovePermission`, `lambda:GetPolicy`
+- Optional debugging only: `cloudwatch:GetMetricStatistics`
 
 Deployment lesson:
 

@@ -6,7 +6,7 @@ This document records the manual AWS validation completed for the Serverless Inc
 
 The purpose of manual validation was to prove that the Phase 1 Lambda handler logic could run in AWS against a real DynamoDB table.
 
-This was not a full production deployment. API Gateway, EventBridge, real CloudWatch alarms, and alarm automation were not deployed. CloudWatch-style alarm events were tested manually through Lambda test events.
+Initial validation was not a full production deployment. API Gateway, EventBridge, real CloudWatch alarms, and alarm automation were not deployed at first; CloudWatch-style alarm events were tested manually through Lambda test events. A later phase added a controlled CloudWatch alarm and EventBridge trigger path using a failure simulator Lambda.
 
 ## Why Build Manually Before CloudFormation
 
@@ -140,6 +140,55 @@ Results:
 
 This was still a manual Lambda test event using a CloudWatch-style payload. A real CloudWatch alarm trigger is not connected yet.
 
+## Real CloudWatch Alarm Trigger Path
+
+The project now includes a low-cost failure simulation path so validation does not depend only on manual Lambda test events.
+
+Planned validation flow:
+
+1. Invoke `sirp-failure-simulator-sam-dev`.
+2. The function logs a clear message and intentionally raises an exception.
+3. CloudWatch records a Lambda `Errors` metric.
+4. CloudWatch alarm `sirp-failure-simulator-errors-sam-dev` enters `ALARM`.
+5. EventBridge rule `sirp-failure-simulator-alarm-rule-sam-dev` captures the CloudWatch Alarm State Change event.
+6. EventBridge invokes `sirp-alarm-to-incident-sam-dev`.
+7. The alarm-to-incident Lambda creates an incident in `sirp-incidents-sam-dev`.
+8. The SNS alert path sends an email for the HIGH severity incident.
+
+This path uses only serverless, usage-based services. It does not add API Gateway, EC2, RDS, NAT Gateway, ALB, ECS, or always-running compute.
+
+## Real CloudWatch Alarm Trigger Validation
+
+The fully automated flow was successfully validated:
+
+```text
+sirp-failure-simulator-sam-dev intentionally failed
+  -> CloudWatch Lambda Errors metric was recorded
+  -> CloudWatch alarm sirp-failure-simulator-errors-sam-dev entered ALARM
+  -> EventBridge rule sirp-failure-simulator-alarm-rule-sam-dev matched the CloudWatch Alarm State Change event
+  -> sirp-alarm-to-incident-sam-dev was invoked automatically
+  -> DynamoDB table sirp-incidents-sam-dev stored a new incident
+  -> SNS email alert was received
+```
+
+Failure simulator invoke returned:
+
+- `StatusCode`: `200`
+- `FunctionError`: `Unhandled`
+- `RuntimeError: Intentional failure generated for SIRP CloudWatch alarm test.`
+
+DynamoDB confirmed incident:
+
+- `id`: `alarm-8a107dc637b96a30`
+- `alarmName`: `sirp-failure-simulator-errors-sam-dev`
+- `severity`: `HIGH`
+- `status`: `OPEN`
+- `source`: `cloudwatch`
+- `alarmState`: `ALARM`
+- `createdAt`: `2026-06-23T16:47:27Z`
+
+The SNS email alert was received successfully, with a slight delay after the simulator failure.
+
 Deployment lesson:
 
 - Local `sam validate` only confirms the template is valid.
@@ -159,6 +208,7 @@ Deployment lesson:
 | SNS manual publish | Published a manual SNS test alert and confirmed email delivery. |
 | SNS-enabled `alarm_to_incident` | Updated `sirp-alarm-to-incident-dev` from the latest S3 package, ran `checkout-api-high-5xx-sns-test`, created incident `alarm-06aef43378caa053`, and received the SNS email alert. |
 | SAM-deployed SNS-enabled `alarm_to_incident` | Deployed stack `sirp-dev`, ran `checkout-api-high-5xx-sam-test` against `sirp-alarm-to-incident-sam-dev`, created incident `alarm-90eb8d0c5dedab14`, and received the SNS email alert. |
+| Real CloudWatch alarm trigger | Invoked `sirp-failure-simulator-sam-dev`, CloudWatch alarm `sirp-failure-simulator-errors-sam-dev` entered `ALARM`, EventBridge invoked `sirp-alarm-to-incident-sam-dev`, incident `alarm-8a107dc637b96a30` was stored, and SNS email was received. |
 | `escalate_incidents` | Tested with `cutoffTimestamp` set to `2027-01-01T00:00:00Z`; response `statusCode` was `200`; escalated 3 stale `OPEN` alarm incidents. |
 
 ## Troubleshooting Notes
@@ -191,4 +241,6 @@ Manual validation proved that:
 - SNS can deliver email notifications from a manually published alert.
 - The alarm-to-incident Lambda can publish an SNS email alert for a manually tested HIGH CloudWatch-style incident.
 - The same SNS-enabled alarm-to-incident path can be deployed repeatably with SAM/CloudFormation.
-- The backend can work without API Gateway, EventBridge, or real CloudWatch alarm automation.
+- A real CloudWatch alarm state change can be produced with a failure simulator Lambda and routed through EventBridge to the existing alarm-to-incident Lambda.
+- The complete automated path from Lambda failure to incident record to SNS email works.
+- The backend now has a real failure-simulator alarm path without API Gateway or always-running compute.

@@ -55,6 +55,53 @@ Validated SAM deployment result:
 - Result: AWS invoke `StatusCode` `200`, application `statusCode` `201`, incident `alarm-90eb8d0c5dedab14`, SNS email received.
 - This was still a manual CloudWatch-style Lambda test event, not a real CloudWatch alarm trigger.
 
+## CloudWatch Alarm Does Not Enter ALARM
+
+The failure simulator path depends on Lambda `Errors` metrics.
+
+Checks:
+
+- Invoke `sirp-failure-simulator-sam-dev` and confirm it fails.
+- Wait at least one 60-second alarm period.
+- Confirm alarm `sirp-failure-simulator-errors-sam-dev` uses metric `AWS/Lambda Errors` with dimension `FunctionName=sirp-failure-simulator-sam-dev`.
+- Confirm `TreatMissingData` is `notBreaching`, so the alarm only fires after real errors.
+
+Validation note:
+
+- The fully automated path was successfully validated.
+- The failure simulator invoke returned `StatusCode` `200` with `FunctionError` `Unhandled`.
+- The raised error was `RuntimeError: Intentional failure generated for SIRP CloudWatch alarm test.`
+- CloudWatch alarm `sirp-failure-simulator-errors-sam-dev` entered `ALARM`.
+- DynamoDB stored incident `alarm-8a107dc637b96a30`.
+- SNS email was received after a slight delay.
+
+Debugging note:
+
+- Reading the metric directly with a CloudWatch metric command required `cloudwatch:GetMetricStatistics`.
+- That permission was only needed for debugging and verification. It is not required for the pipeline itself to run.
+
+## EventBridge Does Not Invoke Alarm Handler
+
+If the alarm enters `ALARM` but no incident is created, check the EventBridge rule and Lambda permission.
+
+Checks:
+
+- Rule name: `sirp-failure-simulator-alarm-rule-sam-dev`
+- Event pattern matches `source=aws.cloudwatch`, `detail-type=CloudWatch Alarm State Change`, alarm name `sirp-failure-simulator-errors-sam-dev`, and state `ALARM`.
+- Target is `sirp-alarm-to-incident-sam-dev`.
+- Lambda permission allows `events.amazonaws.com` to invoke the alarm-to-incident function from the rule ARN.
+
+## Missing Deploy Permissions For Alarm Trigger Resources
+
+SAM deployment of the real trigger path needs more than Lambda and DynamoDB permissions.
+
+Add deploy permissions for:
+
+- CloudWatch alarms: `cloudwatch:PutMetricAlarm`, `cloudwatch:DeleteAlarms`, `cloudwatch:DescribeAlarms`, `cloudwatch:TagResource`, `cloudwatch:UntagResource`
+- Optional metric debugging: `cloudwatch:GetMetricStatistics`
+- EventBridge rules and targets: `events:PutRule`, `events:DeleteRule`, `events:DescribeRule`, `events:PutTargets`, `events:RemoveTargets`, `events:ListTargetsByRule`, `events:TagResource`, `events:UntagResource`
+- Lambda resource policies: `lambda:AddPermission`, `lambda:RemovePermission`, `lambda:GetPolicy`
+
 ## IAM Console Navigation Errors
 
 The AWS console needed `ListRoles` and `ListPolicies` permissions for IAM navigation. Without them, console pages could show access errors even when scoped resource creation permissions were present.

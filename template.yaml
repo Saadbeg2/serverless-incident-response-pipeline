@@ -138,6 +138,60 @@ Resources:
                 - dynamodb:UpdateItem
               Resource: !GetAtt IncidentsTable.Arn
 
+  FailureSimulatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: sirp-failure-simulator-sam-dev
+      Handler: failure_simulator.handler
+      CodeUri: src/
+      MemorySize: 128
+      Timeout: 5
+
+  FailureSimulatorErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: sirp-failure-simulator-errors-sam-dev
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Dimensions:
+        - Name: FunctionName
+          Value: sirp-failure-simulator-sam-dev
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  FailureSimulatorAlarmStateRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: sirp-failure-simulator-alarm-rule-sam-dev
+      EventPattern:
+        source:
+          - aws.cloudwatch
+        detail-type:
+          - CloudWatch Alarm State Change
+        detail:
+          alarmName:
+            - sirp-failure-simulator-errors-sam-dev
+          state:
+            value:
+              - ALARM
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt AlarmToIncidentFunction.Arn
+          Id: AlarmToIncidentFunctionTarget
+
+  AllowEventBridgeInvokeAlarmToIncident:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AlarmToIncidentFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt FailureSimulatorAlarmStateRule.Arn
+
   CreateIncidentLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -174,6 +228,12 @@ Resources:
       LogGroupName: /aws/lambda/sirp-escalate-incidents-sam-dev
       RetentionInDays: 7
 
+  FailureSimulatorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/sirp-failure-simulator-sam-dev
+      RetentionInDays: 7
+
 Outputs:
   IncidentsTableName:
     Description: DynamoDB table used for incident records.
@@ -202,3 +262,15 @@ Outputs:
   EscalateIncidentsFunctionName:
     Description: Lambda function for escalating stale open incidents.
     Value: !Ref EscalateIncidentsFunction
+
+  FailureSimulatorFunctionName:
+    Description: Lambda function that intentionally fails for alarm validation.
+    Value: !Ref FailureSimulatorFunction
+
+  FailureSimulatorAlarmName:
+    Description: CloudWatch alarm for failure simulator Lambda errors.
+    Value: !Ref FailureSimulatorErrorAlarm
+
+  FailureSimulatorAlarmRuleName:
+    Description: EventBridge rule that routes failure simulator alarm events.
+    Value: !Ref FailureSimulatorAlarmStateRule

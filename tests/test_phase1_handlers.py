@@ -7,6 +7,7 @@ from src import alarm_to_incident
 from src import alerts
 from src import create_incident
 from src import escalate_incidents
+from src import failure_simulator
 from src import get_incident
 from src import incident_store
 from src import update_incident
@@ -227,6 +228,10 @@ class Phase1HandlerTests(unittest.TestCase):
 
         self.assertEqual(response["statusCode"], 201)
         self.assertEqual(body["severity"], "CRITICAL")
+
+    def test_failure_simulator_raises_intentional_exception(self):
+        with self.assertRaisesRegex(RuntimeError, "Intentional failure generated"):
+            failure_simulator.handler({}, None)
 
     def test_escalation_changes_stale_open_incidents_to_escalated(self):
         incident_store.create_incident(
