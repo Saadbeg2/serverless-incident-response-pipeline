@@ -97,6 +97,55 @@ Results:
 
 This was still a manual Lambda test event using a CloudWatch-style payload. A real CloudWatch alarm trigger is not connected yet.
 
+## SAM/CloudFormation Deployment Validation
+
+The project was successfully deployed with AWS SAM/CloudFormation using stack name `sirp-dev`.
+
+CloudFormation created:
+
+- DynamoDB table: `sirp-incidents-sam-dev`
+- Lambda functions:
+  - `sirp-create-incident-sam-dev`
+  - `sirp-get-incident-sam-dev`
+  - `sirp-list-incidents-sam-dev`
+  - `sirp-update-incident-sam-dev`
+  - `sirp-alarm-to-incident-sam-dev`
+  - `sirp-escalate-incidents-sam-dev`
+- CloudWatch log groups for each Lambda.
+- Lambda execution IAM roles.
+
+Post-deploy validation checked `sirp-alarm-to-incident-sam-dev` configuration:
+
+- Runtime: `python3.12`
+- Timeout: `10`
+- Memory: `256`
+- `INCIDENTS_TABLE_NAME=sirp-incidents-sam-dev`
+- `INCIDENT_ALERT_TOPIC_ARN=arn:aws:sns:us-east-1:107570341596:sirp-incident-alerts-dev`
+
+The function was invoked with a CloudWatch-style Lambda test event:
+
+- `alarmName`: `checkout-api-high-5xx-sam-test`
+- `timestamp`: `2026-06-23T01:30:00Z`
+
+Results:
+
+- AWS invoke `StatusCode`: `200`
+- Application `statusCode`: `201`
+- Created incident:
+  - `id`: `alarm-90eb8d0c5dedab14`
+  - `severity`: `HIGH`
+  - `status`: `OPEN`
+  - `source`: `cloudwatch`
+- SNS email alert was received successfully.
+
+This was still a manual Lambda test event using a CloudWatch-style payload. A real CloudWatch alarm trigger is not connected yet.
+
+Deployment lesson:
+
+- Local `sam validate` only confirms the template is valid.
+- Real deployment can still fail if the deploy IAM user lacks permissions for generated or named resources.
+- The project fixed this by using predictable SAM resource names and updating deploy permissions.
+
 ## Test Results Summary
 
 | Test | Result |
@@ -109,6 +158,7 @@ This was still a manual Lambda test event using a CloudWatch-style payload. A re
 | `alarm_to_incident` idempotency | Ran the same exact alarm event twice and confirmed the same incident id was returned. |
 | SNS manual publish | Published a manual SNS test alert and confirmed email delivery. |
 | SNS-enabled `alarm_to_incident` | Updated `sirp-alarm-to-incident-dev` from the latest S3 package, ran `checkout-api-high-5xx-sns-test`, created incident `alarm-06aef43378caa053`, and received the SNS email alert. |
+| SAM-deployed SNS-enabled `alarm_to_incident` | Deployed stack `sirp-dev`, ran `checkout-api-high-5xx-sam-test` against `sirp-alarm-to-incident-sam-dev`, created incident `alarm-90eb8d0c5dedab14`, and received the SNS email alert. |
 | `escalate_incidents` | Tested with `cutoffTimestamp` set to `2027-01-01T00:00:00Z`; response `statusCode` was `200`; escalated 3 stale `OPEN` alarm incidents. |
 
 ## Troubleshooting Notes
@@ -140,4 +190,5 @@ Manual validation proved that:
 - Deterministic alarm incident ids prevent duplicate records for the same alarm event.
 - SNS can deliver email notifications from a manually published alert.
 - The alarm-to-incident Lambda can publish an SNS email alert for a manually tested HIGH CloudWatch-style incident.
+- The same SNS-enabled alarm-to-incident path can be deployed repeatably with SAM/CloudFormation.
 - The backend can work without API Gateway, EventBridge, or real CloudWatch alarm automation.

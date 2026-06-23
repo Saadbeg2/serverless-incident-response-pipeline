@@ -164,16 +164,62 @@ Use a clear stack name so teardown is easy:
 ```bash
 sam deploy \
   --guided \
-  --stack-name serverless-incident-response-pipeline
+  --stack-name sirp-dev
 ```
 
 During guided deployment, review the generated changes carefully before confirming.
+
+## SAM Deployment Validation
+
+The project was successfully deployed with AWS SAM/CloudFormation using stack name `sirp-dev`.
+
+CloudFormation created:
+
+- DynamoDB table: `sirp-incidents-sam-dev`
+- Lambda functions:
+  - `sirp-create-incident-sam-dev`
+  - `sirp-get-incident-sam-dev`
+  - `sirp-list-incidents-sam-dev`
+  - `sirp-update-incident-sam-dev`
+  - `sirp-alarm-to-incident-sam-dev`
+  - `sirp-escalate-incidents-sam-dev`
+- CloudWatch log groups for each Lambda function.
+- Lambda execution IAM roles.
+
+Post-deploy validation checked `sirp-alarm-to-incident-sam-dev` configuration:
+
+- Runtime: `python3.12`
+- Timeout: `10`
+- Memory: `256`
+- `INCIDENTS_TABLE_NAME=sirp-incidents-sam-dev`
+- `INCIDENT_ALERT_TOPIC_ARN=arn:aws:sns:us-east-1:107570341596:sirp-incident-alerts-dev`
+
+The function was invoked with a CloudWatch-style Lambda test event:
+
+- `alarmName`: `checkout-api-high-5xx-sam-test`
+- `timestamp`: `2026-06-23T01:30:00Z`
+
+Results:
+
+- AWS invoke `StatusCode`: `200`
+- Application `statusCode`: `201`
+- Created incident id: `alarm-90eb8d0c5dedab14`
+- Incident fields: `severity=HIGH`, `status=OPEN`, `source=cloudwatch`
+- SNS email alert received successfully.
+
+This was still manually tested with a CloudWatch-style Lambda test event. A real CloudWatch alarm trigger is not connected yet.
+
+Deployment lesson:
+
+- Local `sam validate` confirms that the template is valid.
+- Real deployment can still fail if the deploy IAM user lacks permissions for generated or named resources.
+- This project fixed that by using predictable SAM resource names and updating deploy permissions.
 
 ## Check Stack Outputs
 
 ```bash
 aws cloudformation describe-stacks \
-  --stack-name serverless-incident-response-pipeline \
+  --stack-name sirp-dev \
   --query "Stacks[0].Outputs"
 ```
 
@@ -185,14 +231,14 @@ Use this exact command when you are done testing:
 
 ```bash
 aws cloudformation delete-stack \
-  --stack-name serverless-incident-response-pipeline
+  --stack-name sirp-dev
 ```
 
 Then confirm deletion completed:
 
 ```bash
 aws cloudformation wait stack-delete-complete \
-  --stack-name serverless-incident-response-pipeline
+  --stack-name sirp-dev
 ```
 
 ## Teardown-First Reminder

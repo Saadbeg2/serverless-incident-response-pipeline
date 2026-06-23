@@ -47,6 +47,7 @@ Status: Manual AWS validation complete after Phase 2.
 - Manual AWS validation: Complete. Lambda functions were manually packaged, uploaded through S3, connected to DynamoDB, and tested with Lambda test events.
 - Manual SNS validation: Complete. An SNS topic and confirmed email subscription were tested with a manual publish.
 - SNS-enabled alarm-to-incident validation: Complete. The updated `lambda-package.zip` was uploaded to S3, `sirp-alarm-to-incident-dev` was updated from the latest package, and a CloudWatch-style Lambda test event created a HIGH incident in DynamoDB and delivered an SNS email alert.
+- SAM/CloudFormation deployment validation: Complete. Stack `sirp-dev` deployed the SAM-managed DynamoDB table, Lambda functions, CloudWatch log groups, and Lambda execution IAM roles. `sirp-alarm-to-incident-sam-dev` was validated with a CloudWatch-style Lambda test event and delivered an SNS email alert.
 
 Manual validation confirmed that incidents can be created, retrieved, listed, updated, created from CloudWatch-style alarm events, escalated when stale, and sent as SNS email alerts for high-severity alarm-style incidents. SNS manual publish was also validated. Real API Gateway, EventBridge, and CloudWatch alarm automation are not deployed yet.
 
@@ -54,7 +55,7 @@ CloudWatch-style alarm events are still manually tested through Lambda test even
 
 See [docs/manual-validation.md](docs/manual-validation.md) for the validation summary.
 
-Deployment is optional and manual. Local tests still do not require AWS credentials. CloudFormation/SAM remains the intended repeatable deployment method after manual validation.
+Deployment is optional and manual. Local tests still do not require AWS credentials. CloudFormation/SAM is now the validated repeatable deployment method, but real deployment still depends on the deploy IAM user having permissions for the named stack resources.
 
 ## Teardown-First Mindset
 

@@ -16,11 +16,15 @@ The project is intentionally cost-conscious. It avoids always-on services like E
 
 I first built and validated the architecture manually in AWS to understand how Lambda, S3, IAM, DynamoDB, and CloudWatch Logs interacted. After validating the workflow manually, the next step is to codify the same setup in CloudFormation so it can be recreated consistently.
 
+I then deployed the same backend with AWS SAM/CloudFormation using stack `sirp-dev`. That deployment created the SAM-managed DynamoDB table, Lambda functions, CloudWatch log groups, and Lambda execution roles with predictable names.
+
 ## SNS Alerting Explanation
 
 The project originally stored incidents in DynamoDB. I then added SNS alerting so high-severity CloudWatch-style incidents could notify operators by email. I manually validated SNS first, then connected the alarm-to-incident Lambda to publish alerts through a least-privilege IAM permission.
 
 The SNS-enabled path was then validated with a manual CloudWatch-style Lambda test event. The Lambda created a HIGH incident in DynamoDB and an SNS email alert was received, while real CloudWatch alarm triggers remained a future integration step.
+
+After deploying with SAM, I validated the SAM-managed alarm-to-incident Lambda the same way: a CloudWatch-style test event created incident `alarm-90eb8d0c5dedab14` and delivered an SNS email alert. This also taught an IAM lesson: local `sam validate` proves template syntax, but real deployment still depends on the deploy user having permissions for the named and generated AWS resources.
 
 ## Likely Interview Questions
 

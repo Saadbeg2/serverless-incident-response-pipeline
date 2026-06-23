@@ -31,6 +31,30 @@ Fix:
 - Add the required S3 permissions for encryption configuration and tagging during the manual build.
 - Keep resource creation scoped to the project naming pattern where possible.
 
+## SAM Validate vs Deploy Permissions
+
+`sam validate` can succeed locally even when deployment fails in AWS.
+
+Cause:
+
+- `sam validate` checks template validity.
+- Real deployment also needs the deploy IAM user to create, tag, update, and delete the resources in the stack.
+- CloudFormation/SAM may create generated resources such as Lambda execution roles.
+
+Fix:
+
+- Use predictable resource names where possible.
+- Make sure the deploy IAM policy covers the named DynamoDB table, Lambda functions, CloudWatch log groups, Lambda execution roles, and any required tagging actions.
+- For this project, stack `sirp-dev` was successfully deployed after predictable SAM resource names and deploy permissions were aligned.
+
+Validated SAM deployment result:
+
+- Stack name: `sirp-dev`
+- Alarm Lambda: `sirp-alarm-to-incident-sam-dev`
+- Test event: `checkout-api-high-5xx-sam-test` at `2026-06-23T01:30:00Z`
+- Result: AWS invoke `StatusCode` `200`, application `statusCode` `201`, incident `alarm-90eb8d0c5dedab14`, SNS email received.
+- This was still a manual CloudWatch-style Lambda test event, not a real CloudWatch alarm trigger.
+
 ## IAM Console Navigation Errors
 
 The AWS console needed `ListRoles` and `ListPolicies` permissions for IAM navigation. Without them, console pages could show access errors even when scoped resource creation permissions were present.

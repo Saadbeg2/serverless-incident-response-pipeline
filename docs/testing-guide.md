@@ -181,6 +181,33 @@ The latest manual validation confirmed the SNS-enabled `alarm_to_incident` path 
 
 This was not a real CloudWatch alarm trigger. It was still manually tested through a Lambda test event.
 
+### SAM-Deployed SNS Validation Result
+
+The SAM/CloudFormation stack `sirp-dev` was deployed and validated with the SAM-managed alarm-to-incident Lambda.
+
+Validated function configuration for `sirp-alarm-to-incident-sam-dev`:
+
+- Runtime: `python3.12`
+- Timeout: `10`
+- Memory: `256`
+- `INCIDENTS_TABLE_NAME=sirp-incidents-sam-dev`
+- `INCIDENT_ALERT_TOPIC_ARN=arn:aws:sns:us-east-1:107570341596:sirp-incident-alerts-dev`
+
+The function was invoked with a CloudWatch-style Lambda test event:
+
+- `alarmName`: `checkout-api-high-5xx-sam-test`
+- `timestamp`: `2026-06-23T01:30:00Z`
+
+Results:
+
+- AWS invoke `StatusCode`: `200`
+- Application `statusCode`: `201`
+- Created incident `alarm-90eb8d0c5dedab14`
+- Incident fields: `severity=HIGH`, `status=OPEN`, `source=cloudwatch`
+- SNS email alert was received.
+
+This was still not a real CloudWatch alarm trigger. The event was manually supplied through Lambda testing.
+
 ### Testing SNS Without AWS
 
 Unit tests mock the SNS client and set `INCIDENT_ALERT_TOPIC_ARN` only inside the test case. This verifies that the code attempts to publish for HIGH/CRITICAL incidents without using AWS credentials.
